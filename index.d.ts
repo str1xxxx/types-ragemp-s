@@ -13,60 +13,68 @@ type RGBA = [number, number, number, number];
 type Array2d = [number, number];
 type Array3d = [number, number, number];
 type Array4d = [number, number, number, number];
+type KeyValueCollection = { [key: string]: any };
 
 // -------------------------------------------------------------------------
 // Main MP type
 // -------------------------------------------------------------------------
 
-type Mp = {
+interface Mp {
     blips: BlipMpPool;
     checkpoints: CheckpointMpPool;
     colshapes: ColshapeMpPool;
+    dummies: DummyEntityMpPool;
     events: EventMpPool;
     labels: TextLabelMpPool;
     markers: MarkerMpPool;
+    peds: PedMpPool;
     pickups: PickupMpPool;
     players: PlayerMpPool;
     objects: ObjectMpPool;
     vehicles: VehicleMpPool;
     config: ConfigMp;
+    network: NetworkMp;
     world: WorldMp;
-	rpc: Rpc
+    rpc: Rpc;
 
-    Event: {
-        new (eventName: RageEnums.EventKey | string, callback: (...args: any[]) => void): EventMp;
-    };
+    Blip: typeof BlipMp;
+    Checkpoint: typeof CheckpointMp;
+    DummyEntity: typeof DummyEntityMp;
+    Marker: typeof MarkerMp;
+    Ped: typeof PedMp;
+    Pickup: typeof PickupMp;
+    Player: typeof PlayerMp;
+    TextLabel: typeof TextLabelMp;
+    Vehicle: typeof VehicleMp;
+
+    Event: typeof EventMp;
     Vector3: Vector3Mp;
 
     joaat(str: string): number;
     joaat(strs: string[]): number[];
-};
+}
 
 // -------------------------------------------------------------------------
 // Entity MP types
 // -------------------------------------------------------------------------
-export interface Player {
-    call: (eventName: string, args?: any[]) => void;
-    [property: string]: any;
-}
 
-export interface Browser {
+interface Browser {
     execute: (code: string) => void;
-    [property: string]: any;
 }
 
-export interface ProcedureListenerInfo {
+interface ProcedureListenerInfo {
     environment: string;
     id?: string;
-    player?: Player;
+    player?: PlayerMp;
 }
 
-export interface CallOptions {
+interface CallOptions {
     timeout?: number;
     noRet?: boolean;
 }
 
-export type ProcedureListener = (args: any, info: ProcedureListenerInfo) => any;
+type ProcedureListener = (args: any, info: ProcedureListenerInfo) => any;
+
 declare class Rpc {
     register(name: string, cb: ProcedureListener): Function;
     unregister(name: string): void;
@@ -88,7 +96,8 @@ declare class Rpc {
     triggerBrowser(browser: Browser, name: string, args?: any): void;
 }
 
-interface BlipMp extends EntityMp {
+interface BlipMp extends EntityMp {}
+declare abstract class BlipMp {
     color: number;
     name: string;
     drawDistance: number;
@@ -103,7 +112,8 @@ interface BlipMp extends EntityMp {
     unrouteFor(players: PlayerMp[]): void;
 }
 
-interface CheckpointMp extends EntityMp {
+interface CheckpointMp extends EntityMp {}
+declare abstract class CheckpointMp {
     color: number;
     destination: Vector3Mp;
     radius: number;
@@ -115,10 +125,15 @@ interface CheckpointMp extends EntityMp {
     showFor(player: PlayerMp): void;
 }
 
-interface ColshapeMp extends EntityMp {
+interface ColshapeMp extends EntityMp {}
+declare abstract class ColshapeMp {
     readonly shapeType: RageEnums.ColshapeType;
 
     isPointWithin(point: Vector3Mp): boolean;
+}
+
+declare abstract class DummyEntityMp {
+    dummyType: number;
 }
 
 interface EntityMp {
@@ -130,14 +145,16 @@ interface EntityMp {
     readonly id: number;
     readonly type: RageEnums.EntityType;
 
-    getVariable(name: string): any | undefined;
+    getVariable<T = any>(name: string): T | undefined;
     destroy(): void;
     dist(position: Vector3Mp): number;
     distSquared(position: Vector3Mp): number;
     setVariable(name: string, value: any): void;
+    setVariables(values: KeyValueCollection): void;
 }
 
-interface MarkerMp extends EntityMp {
+interface MarkerMp extends EntityMp {}
+declare abstract class MarkerMp {
     direction: Vector3Mp;
     scale: number;
     visible: boolean;
@@ -148,22 +165,32 @@ interface MarkerMp extends EntityMp {
     showFor(player: PlayerMp): void;
 }
 
-interface ObjectMp extends EntityMp {
+interface PedMp extends EntityMp {}
+declare abstract class PedMp {
+    controller: PlayerMp;
+}
+
+interface ObjectMp extends EntityMp {}
+declare abstract class ObjectMp {
     rotation: Vector3Mp;
 }
 
-interface PickupMp extends EntityMp {
+interface PickupMp extends EntityMp {}
+declare abstract class PickupMp {
     pickupHash: number;
 }
 
-interface PlayerMp extends EntityMp {
+interface PlayerMp extends EntityMp {}
+declare abstract class PlayerMp {
     armour: number;
     eyeColor: number;
+    gameType: string;
     heading: number;
     health: number;
     name: string;
     weapon: number;
     weaponAmmo: number;
+    disableOutgoingSync: boolean;
     readonly action: string;
     readonly aimTarget: PlayerMp;
     readonly allWeapons: number[];
@@ -192,9 +219,14 @@ interface PlayerMp extends EntityMp {
 
     ban(reason: string): void;
     call(eventName: string, args?: any[]): void;
+    callProc(eventName: string, args?: any[]): Promise<any>;
+    callUnreliable(eventName: string, args?: any[]): void;
+    cancelPendingRpc(procName?: string): void;
     clearDecorations(): void;
     disableVoiceTo(targetPlayer: PlayerMp): void;
+    eval(code: string): void;
     enableVoiceTo(targetPlayer: PlayerMp): void;
+    forceStreamingUpdate(): void;
     getClothes(component: RageEnums.ClothesComponent | number): {
         drawable: number;
         texture: number;
@@ -209,7 +241,9 @@ interface PlayerMp extends EntityMp {
         skinMix: number;
         thirdMix: number;
     };
+    getHeadBlendPaletteColor(type: 0 | 1 | 2 | 3): Array3d;
     getHeadOverlay(overlay: RageEnums.HeadOverlay | number): Array4d;
+    getOwnVariable<T = any>(key: string): T | undefined;
     getProp(prop: RageEnums.PlayerProp | number): {
         drawable: number;
         texture: number;
@@ -217,9 +251,11 @@ interface PlayerMp extends EntityMp {
     getWeaponAmmo(weapon: RageEnums.Hashes.Weapon | HashOrString): number;
     giveWeapon(weaponHash: RageEnums.Hashes.Weapon | HashOrString, ammo: number): void;
     giveWeapon(weaponHashes: (RageEnums.Hashes.Weapon | HashOrString)[], ammo: number): void;
+    hasPendingRpc(procName?: string): boolean;
     isStreamed(player: PlayerMp): boolean;
     invoke(hash: string, ...args: any[]): void;
     kick(reason: string): void;
+    kickSilent(): void;
     notify(message: string): void;
     outputChatBox(message: string): void;
     playAnimation(dict: string, name: string, speed: number, flag: number): void;
@@ -261,24 +297,32 @@ interface PlayerMp extends EntityMp {
         skinMix: number,
         thirdMix: number,
     ): void;
+    setHeadBlendPaletteColor(rgbColor: Array3d, type: 0 | 1 | 2 | 3): void;
     setHeadOverlay(overlay: RageEnums.HeadOverlay | number, value: Array4d): void;
+    setOwnVariable(key: string, value: any): void;
+    setOwnVariables(values: KeyValueCollection): void;
     setProp(prop: RageEnums.PlayerProp | number, drawable: number, texture: number): void;
     setWeaponAmmo(weapon: RageEnums.Hashes.Weapon | HashOrString, ammo: number): void;
     spawn(position: Vector3Mp): void;
     updateHeadBlend(shapeMix: number, skinMix: number, thirdMix: number): void;
     playScenario(scenario: string): void;
+    callToStreamed(includeSelf: boolean, eventName: string, args?: any[]): void;
 }
 
-interface TextLabelMp extends EntityMp {
+interface TextLabelMp extends EntityMp {}
+declare abstract class TextLabelMp {
     color: RGB;
     drawDistance: number;
     los: boolean;
     text: string;
 }
 
-interface VehicleMp extends EntityMp {
+interface VehicleMp extends EntityMp {}
+declare abstract class VehicleMp {
     bodyHealth: number;
     brake: boolean;
+    controller: PlayerMp | undefined;
+    customTires: boolean;
     engine: boolean;
     engineHealth: number;
     dashboardColor: number;
@@ -336,6 +380,11 @@ interface VehicleMp extends EntityMp {
 // Simple MP types
 // -------------------------------------------------------------------------
 
+interface NetworkMp {
+    startBatch(): void;
+    endBatch(): void;
+}
+
 interface WorldMp {
     weather: RageEnums.Weather | string;
     time: {
@@ -355,12 +404,21 @@ interface WorldMp {
     setWeatherTransition(weather: RageEnums.Weather | string, duration?: number): void;
 }
 
-interface EventMp {
+declare class EventMp {
+    constructor(eventName: RageEnums.EventKey | string, callback: (...args: any[]) => void);
+
+    /**
+     * Adds the handler to the event tree.
+     */
+    enable(): void;
+
+    /**
+     * Removes all instances of this event handler from the events tree.
+     */
     destroy(): void;
 }
 
 interface ConfigMp {
-    [prop: string]: any;
     announce: boolean;
     bind: string;
     gamemode: string;
@@ -424,11 +482,17 @@ interface CheckpointMpPool extends EntityMpPool<CheckpointMp> {
 }
 
 interface ColshapeMpPool extends EntityMpPool<ColshapeMp> {
-    newCircle(x: number, y: number, range: number): ColshapeMp;
-    newCuboid(x: number, y: number, z: number, width: number, depth: number, height: number): ColshapeMp;
-    newRectangle(x: number, y: number, width: number, height: number): ColshapeMp;
-    newSphere(x: number, y: number, z: number, range: number): ColshapeMp;
-    newTube(x: number, y: number, z: number, range: number, height: number): ColshapeMp;
+    newCircle(x: number, y: number, range: number, dimension?: number): ColshapeMp;
+    newCuboid(x: number, y: number, z: number, width: number, depth: number, height: number, dimension?: number): ColshapeMp;
+    newRectangle(x: number, y: number, width: number, height: number, dimension?: number): ColshapeMp;
+    newSphere(x: number, y: number, z: number, range: number, dimension?: number): ColshapeMp;
+    newTube(x: number, y: number, z: number, height: number, range: number, dimension?: number): ColshapeMp;
+}
+
+interface DummyEntityMpPool {
+    'new'(dummyEntityType: number, sharedVariables: KeyValueCollection): DummyEntityMp;
+
+    forEachByType(dummyEntityType: number, fn: (entity: DummyEntityMp) => void): void;
 }
 
 interface EntityMpPool<TEntity> {
@@ -442,19 +506,59 @@ interface EntityMpPool<TEntity> {
     forEachInRange(position: Vector3Mp, range: number, fn: (entity: TEntity) => void): void;
     forEachInRange(position: Vector3Mp, range: number, dimension: number, fn: (entity: TEntity) => void): void;
     forEachInDimension(dimension: number, fn: (entity: TEntity) => void): void;
-    getClosest(position: Vector3Mp, limit: number): TEntity;
+    getClosest(position: Vector3Mp): TEntity;
+    getClosest(position: Vector3Mp, limit: number): TEntity[];
+    getClosestInDimension(position: Vector3Mp, dimension: number): TEntity;
+    getClosestInDimension(position: Vector3Mp, dimension: number, limit: number): TEntity[];
     toArray(): TEntity[];
+    toArrayFast(): TEntity[];
 }
 
 interface EventMpPool {
+    delayShutdown: boolean;
+    delayInitialization: boolean;
+
+    add(eventName: RageEnums.EventKey.PLAYER_ENTER_CHECKPOINT, callback: (player: PlayerMp, checkpoint: CheckpointMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_EXIT_CHECKPOINT, callback: (player: PlayerMp, checkpoint: CheckpointMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_ENTER_COLSHAPE, callback: (player: PlayerMp, colshape: ColshapeMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_EXIT_COLSHAPE, callback: (player: PlayerMp, colshape: ColshapeMp) => void): void;
+    add(eventName: RageEnums.EventKey.ENTITY_CREATED, callback: (entity: EntityMp) => void): void;
+    add(eventName: RageEnums.EventKey.ENTITY_DESTROYED, callback: (entity: EntityMp) => void): void;
+    add(eventName: RageEnums.EventKey.ENTITY_MODEL_CHANGE, callback: (entity: EntityMp, oldModel: number) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_CHAT, callback: (player: PlayerMp, text: string) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_COMMAND, callback: (player: PlayerMp, command: string) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_DAMAGE, callback: (player: PlayerMp, healthLoss: number, armorLoss: number) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_DEATH, callback: (player: PlayerMp, reason: number, killer?: PlayerMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_JOIN, callback: (player: PlayerMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_QUIT, callback: (player: PlayerMp, exitType: string, reason: string) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_READY, callback: (player: PlayerMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_SPAWN, callback: (player: PlayerMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_WEAPON_CHANGE, callback: (player: PlayerMp, oldWeapon: number, newWeapon: number) => void): void;
+    add(eventName: RageEnums.EventKey.SERVER_SHUTDOWN, callback: () => void): void;
+    add(
+        eventName: RageEnums.EventKey.INCOMING_CONNECTION,
+        callback: (ip: string, serial: string, rgscName: string, rgscId: string, gameType: string) => void,
+    ): void;
+    add(eventName: RageEnums.EventKey.PACKAGES_LOADED, callback: () => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_ENTER_VEHICLE, callback: (player: PlayerMp, vehicle: VehicleMp, seat: number) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_EXIT_VEHICLE, callback: (player: PlayerMp, vehicle: VehicleMp) => void): void;
+    add(eventName: RageEnums.EventKey.PLAYER_START_ENTER_VEHICLE, callback: (player: PlayerMp, vehicle: VehicleMp, seat: number) => void): void;
+    // todo: check vehicle param
+    add(eventName: RageEnums.EventKey.PLAYER_START_EXIT_VEHICLE, callback: (player: PlayerMp) => void): void;
+    add(eventName: RageEnums.EventKey.TRAILER_ATTACHED, callback: (vehicle: VehicleMp, trailer: VehicleMp) => void): void;
+    add(eventName: RageEnums.EventKey.VEHICLE_DAMAGE, callback: (vehicle: VehicleMp, bodyHealthLoss: number, engineHealthLoss: number) => void): void;
+    add(eventName: RageEnums.EventKey.VEHICLE_DEATH, callback: (vehicle: VehicleMp) => void): void;
+    add(eventName: RageEnums.EventKey.VEHICLE_HORN_TOGGLE, callback: (vehicle: VehicleMp, toggle: boolean) => void): void;
+    add(eventName: RageEnums.EventKey.VEHICLE_SIREN_TOGGLE, callback: (vehicle: VehicleMp, toggle: boolean) => void): void;
+
     add(eventName: RageEnums.EventKey | string, callback: (...args: any[]) => void): void;
     add(events: { [name: string]: (...args: any[]) => void }): void;
+    addProc(procName: string, callback: (...args: any[]) => void): void;
+    addProc(procs: { [name: string]: (...args: any[]) => void }): void;
     addCommand(commandName: string, callback: (player: PlayerMp, fullText: string, ...args: string[]) => void): void;
     addCommand(commands: { [commandName: string]: (player: PlayerMp, fullText: string, ...args: string[]) => void }): void;
     call(eventName: string, ...args: any[]): void;
-    callLocal(eventName: string, ...args: any[]): void;
-    delayShutdown: boolean;
-    delayInitialization: boolean;
+    callLocal(eventName: string, args?: any[]): void;
     getAllOf(eventName: string): EventMp[];
     remove(eventName: string, handler?: (...args: any[]) => void): void;
     remove(eventNames: string[]): void;
@@ -476,6 +580,19 @@ interface MarkerMpPool extends EntityMpPool<MarkerMp> {
     ): MarkerMp;
 }
 
+interface PedMpPool extends EntityMpPool<PedMp> {
+    'new'(
+        modelHash: number,
+        position: Vector3Mp,
+        options?: {
+            dynamic?: boolean;
+            frozen?: boolean;
+            invincible?: boolean;
+            lockController?: boolean;
+        },
+    ): PedMp;
+}
+
 interface ObjectMpPool extends EntityMpPool<ObjectMp> {
     'new'(
         model: HashOrString,
@@ -489,18 +606,23 @@ interface ObjectMpPool extends EntityMpPool<ObjectMp> {
 }
 
 interface PickupMpPool extends EntityMpPool<PickupMp> {
-    'new'(...args: any[]): PickupMp; // TODO
+    //"new"(...args: any[]): PickupMp; // Not working anymore
 }
 
 interface PlayerMpPool extends EntityMpPool<PlayerMp> {
     broadcast(text: string): void;
     broadcastInRange(position: Vector3Mp, range: number, text: string): void;
     broadcastInRange(position: Vector3Mp, range: number, dimension: number, text: string): void;
-    broadcastInDimension(dimension: number, text: string): void;
-    call(eventName: string, ...args: any[]): void;
-    call(players: PlayerMp[], eventName: string, ...args: any[]): void;
-    callInDimension(dimension: number, eventName: string, ...args: any[]): void;
-    callInRange(position: Vector3Mp, range: number, eventName: string, ...args: any[]): void;
+    call(eventName: string, args?: any[]): void;
+    call(players: PlayerMp[], eventName: string, args?: any[]): void;
+    callInDimension(dimension: number, eventName: string, args?: any[]): void;
+    callInRange(position: Vector3Mp, range: number, eventName: string, args?: any[]): void;
+    callInRange(position: Vector3Mp, range: number, dimension: number, eventName: string, args?: any[]): void;
+    callUnreliable(eventName: string, args?: any[]): void;
+    callUnreliable(players: PlayerMp[], eventName: string, args?: any[]): void;
+    callInDimensionUnreliable(dimension: number, eventName: string, args?: any[]): void;
+    callInRangeUnreliable(position: Vector3Mp, range: number, eventName: string, args?: any[]): void;
+    callInRangeUnreliable(position: Vector3Mp, range: number, dimension: number, eventName: string, args?: any[]): void;
 }
 
 interface TextLabelMpPool extends EntityMpPool<TextLabelMp> {
