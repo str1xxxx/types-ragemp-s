@@ -459,12 +459,34 @@ interface BlipMpPool extends EntityMpPool<BlipMp> {
             color?: number;
             dimension?: number;
             drawDistance?: number;
-            name?: string;
+            name: string;
             rotation?: number;
             scale?: number;
             shortRange?: boolean;
         },
     ): BlipMp;
+    /**
+     * Создаёт локализированый блип, в name нужно указывать ключ перевода, название автоматически меняется при смене языка 
+     * @example
+     * mp.blips.create(13, new mp.Vector3(0, 0, 0), {
+        name: 'Translate key'
+     })
+     * 
+     */
+    create(
+        sprite: number,
+        position: Vector3Mp,
+        options?: {
+            alpha?: number;
+            color?: number;
+            dimension?: number;
+            drawDistance?: number;
+            name?: string;
+            rotation?: number;
+            scale?: number;
+            shortRange?: boolean;
+        },
+    )
 }
 
 interface CheckpointMpPool extends EntityMpPool<CheckpointMp> {
