@@ -659,6 +659,22 @@ interface TextLabelMpPool extends EntityMpPool<TextLabelMp> {
             los?: boolean;
         },
     ): TextLabelMp;
+    /**
+     * Создаёт локализированый лейбл. В первом аргументе нужно указывать локализированую строку как в примере ниже:
+     * @example
+     * mp.labels.create('Aboba %{translateKey} абоба')
+     */
+    create(
+        text: string,
+        position: Vector3Mp,
+        options?: {
+            color?: RGBA;
+            dimension?: number;
+            drawDistance?: number;
+            font?: number;
+            los?: boolean;
+        },
+    ): TextLabelMp;
 }
 
 interface VehicleMpPool extends EntityMpPool<VehicleMp> {
