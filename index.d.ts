@@ -486,7 +486,7 @@ interface BlipMpPool extends EntityMpPool<BlipMp> {
             scale?: number;
             shortRange?: boolean;
         },
-    )
+    ): { uid: string; destroy: Function };
 }
 
 interface CheckpointMpPool extends EntityMpPool<CheckpointMp> {
@@ -674,7 +674,7 @@ interface TextLabelMpPool extends EntityMpPool<TextLabelMp> {
             font?: number;
             los?: boolean;
         },
-    ): TextLabelMp;
+    ): { uid: string; destroy: Function; changeText: string };
 }
 
 interface VehicleMpPool extends EntityMpPool<VehicleMp> {
