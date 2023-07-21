@@ -487,6 +487,11 @@ interface BlipMpPool extends EntityMpPool<BlipMp> {
             shortRange?: boolean;
         },
     ): { uid: string; destroy: Function };
+
+    /**
+     * Подписывает блип для локализации
+     */
+    subscribeBlip(blip: BlipMp, localeString: string): void;
 }
 
 interface CheckpointMpPool extends EntityMpPool<CheckpointMp> {
