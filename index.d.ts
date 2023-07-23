@@ -36,6 +36,7 @@ interface Mp {
     network: NetworkMp;
     world: WorldMp;
     rpc: Rpc;
+    interactions: Interaction
 
     Blip: typeof BlipMp;
     Checkpoint: typeof CheckpointMp;
@@ -54,6 +55,26 @@ interface Mp {
     joaat(strs: string[]): number[];
 }
 
+//
+
+interface InteractionOptions {
+    position: Vector3;
+    radius: number;
+    callback: Function;
+    isVehicle: boolean;
+    text: string;
+    tKey: string; // Локализационная хуйня (Localization thing - Please provide a proper description)
+    accessCheck: Function;
+    dimension: Function; // You might want to replace "Function" with a more specific type for the dimension.
+}  
+
+declare class Interaction {
+    /**
+     * Creates a new interaction within a given radius around a specified position.
+     */
+    create: (options: InteractionOptions) => ColshapeMp;
+    remove: (colshape: ColshapeMp) => void;
+}
 // -------------------------------------------------------------------------
 // Entity MP types
 // -------------------------------------------------------------------------
