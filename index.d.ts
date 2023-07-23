@@ -63,7 +63,10 @@ interface InteractionOptions {
     callback: Function;
     isVehicle: boolean;
     text: string;
-    tKey: string; // Локализационная хуйня (Localization thing - Please provide a proper description)
+    /**
+     * Локализационный ключ 
+     */
+    tKey: string; 
     accessCheck: Function;
     dimension: Function; // You might want to replace "Function" with a more specific type for the dimension.
 }  
